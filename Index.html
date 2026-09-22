@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Straßenschild – Rechberghausen Quiz</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green: #1E5631;
+    --green-dark: #123C21;
+    --green-darker: #0C2A17;
+    --yellow: #F5C400;
+    --yellow-soft: #FBE28A;
+    --asphalt: #1B1D21;
+    --asphalt-2: #26292E;
+    --paper: #ECE8DD;
+    --ink: #1B1D21;
+    --miss: #C4402D;
+    --hit: #2E8B57;
+    --radius: 10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--asphalt);
+    color:var(--paper);
+    font-family:'Inter',sans-serif;
+    display:flex;
+    flex-direction:column;
+    min-height:100vh;
+  }
+  h1,h2,h3, .num, button{font-family:'Oswald',sans-serif;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  /* ---- Top sign bar ---- */
+  header.signbar{
+    background:linear-gradient(180deg, var(--green) 0%, var(--green-dark) 100%);
+    border-bottom:6px solid var(--yellow);
+    padding:14px 16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    box-shadow:0 3px 10px rgba(0,0,0,.4);
+    position:relative;
+    z-index:50;
+  }
+  header.signbar .title{
+    display:flex;
+    flex-direction:column;
+    line-height:1.05;
+  }
+  header.signbar .title .place{
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--yellow-soft);
+    font-weight:600;
+  }
+  header.signbar .title h1{
+    margin:2px 0 0;
+    font-size:22px;
+    font-weight:700;
+    letter-spacing:.02em;
+    color:#fff;
+    text-shadow:0 1px 0 rgba(0,0,0,.3);
+  }
+  .round-badge{
+    background:#fff;
+    color:var(--green-darker);
+    border-radius:6px;
+    padding:6px 12px;
+    font-weight:700;
+    font-size:15px;
+    letter-spacing:.03em;
+    min-width:60px;
+    text-align:center;
+    border:2px solid var(--green-darker);
+  }
+
+  main{flex:1; display:flex; flex-direction:column; position:relative; overflow:hidden;}
+
+  /* ---- Screens ---- */
+  .screen{
+    display:none;
+    flex:1;
+    flex-direction:column;
+    overflow-y:auto;
+  }
+  .screen.active{display:flex;}
+
+  /* ---- Start screen ---- */
+  #screen-start{
+    padding:28px 20px 40px;
+    align-items:center;
+    text-align:center;
+    background:
+      radial-gradient(circle at 20% 10%, rgba(245,196,0,.06), transparent 40%),
+      var(--asphalt);
+  }
+  .intro-sign{
+    background:var(--green);
+    border:4px solid #fff;
+    border-radius:8px;
+    padding:18px 22px;
+    max-width:420px;
+    margin:0 auto 22px;
+    box-shadow:0 6px 18px rgba(0,0,0,.35);
+  }
+  .intro-sign .street-icon{font-size:34px; margin-bottom:6px;}
+  .intro-sign h2{color:#fff; margin:0 0 6px; font-size:20px; letter-spacing:.03em;}
+  .intro-sign p{color:var(--yellow-soft); margin:0; font-size:13.5px; line-height:1.5;}
+
+  .stat-signs{
+    display:flex; gap:12px; justify-content:center; flex-wrap:wrap;
+    margin-bottom:24px; max-width:420px;
+  }
+  .stat-circle{
+    width:88px;height:88px;border-radius:50%;
+    background:#fff; border:5px solid var(--miss);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    color:var(--ink);
+  }
+  .stat-circle .num{font-size:24px; font-weight:700; line-height:1;}
+  .stat-circle .lbl{font-size:9px; text-transform:uppercase; letter-spacing:.06em; margin-top:2px; color:#555;}
+
+  .recent-list{
+    max-width:340px; margin:0 auto 26px; width:100%;
+    background:var(--asphalt-2); border-radius:8px; padding:10px 14px;
+    border:1px solid #3a3d43;
+  }
+  .recent-list h3{font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--yellow-soft); margin:0 0 8px; text-align:left; font-weight:500;}
+  .recent-row{display:flex; justify-content:space-between; font-size:13px; padding:4px 0; border-bottom:1px dashed #444; color:#cfcac0;}
+  .recent-row:last-child{border-bottom:none;}
+  .recent-row .num{color:var(--yellow); font-weight:700;}
+
+  .mode-select{max-width:420px; width:100%; margin-bottom:22px;}
+  .mode-select h3{font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--yellow-soft); margin:0 0 10px; font-weight:500;}
+  .mode-buttons{display:flex; gap:8px; flex-wrap:wrap; justify-content:center;}
+  .mode-btn{
+    flex:1; min-width:110px;
+    background:var(--asphalt-2); color:var(--paper);
+    border:2px solid #45484f; border-radius:8px;
+    padding:12px 8px; cursor:pointer; font-size:13px; font-weight:600;
+    font-family:'Inter',sans-serif;
+    transition:.15s;
+  }
+  .mode-btn.active{background:var(--yellow); color:var(--ink); border-color:var(--yellow);}
+
+  .big-btn{
+    background:var(--yellow); color:var(--ink);
+    border:none; border-radius:8px;
+    padding:16px 40px; font-size:17px; font-weight:700;
+    letter-spacing:.03em; cursor:pointer;
+    box-shadow:0 4px 0 #B48F00, 0 6px 14px rgba(0,0,0,.3);
+    transition:transform .08s;
+  }
+  .big-btn:active{transform:translateY(2px); box-shadow:0 2px 0 #B48F00;}
+  .big-btn:disabled{opacity:.5; cursor:default;}
+
+  .osm-credit{margin-top:22px; font-size:11px; color:#7d7a72;}
+  .osm-credit a{color:#a9a49a;}
+
+  /* ---- Loading ---- */
+  #screen-loading{align-items:center; justify-content:center; text-align:center; gap:14px;}
+  .spinner{
+    width:44px;height:44px;border-radius:50%;
+    border:5px solid #3a3d43; border-top-color:var(--yellow);
+    animation:spin 0.9s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  #screen-loading p{color:#cfcac0; font-size:14px;}
+  .error-box{
+    background:var(--miss); color:#fff; padding:14px 18px; border-radius:8px;
+    max-width:360px; font-size:13.5px; line-height:1.5; margin-top:10px;
+  }
+
+  /* ---- Game screen ---- */
+  #screen-game{position:relative;}
+  .game-banner{
+    background:var(--green);
+    border-bottom:4px solid var(--yellow);
+    padding:14px 16px;
+    text-align:center;
+    z-index:20;
+  }
+  .game-banner .instr{font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--yellow-soft); margin-bottom:4px; font-weight:600;}
+  .game-banner .target-name{color:#fff; font-size:21px; font-weight:700; line-height:1.15;}
+
+  #map{flex:1; min-height:0; width:100%;}
+
+  .reverse-panel{
+    background:var(--asphalt-2);
+    border-top:3px solid var(--yellow);
+    padding:14px 16px 18px;
+    z-index:20;
+  }
+  .reverse-panel input[type=text]{
+    width:100%; padding:13px 14px; font-size:16px;
+    border-radius:8px; border:2px solid #45484f;
+    background:#fff; color:var(--ink);
+    font-family:'Inter',sans-serif;
+  }
+  .reverse-panel .row{display:flex; gap:10px; margin-top:10px;}
+  .reverse-panel .row button{flex:1;}
+  .small-btn{
+    background:var(--yellow); color:var(--ink); border:none;
+    border-radius:8px; padding:12px; font-weight:700; font-size:14px;
+    cursor:pointer; font-family:'Inter',sans-serif;
+  }
+  .small-btn:disabled{opacity:.45;}
+
+  /* ---- Result overlay ---- */
+  .result-panel{
+    position:fixed; left:0; right:0; bottom:0;
+    background:var(--asphalt-2);
+    border-top:4px solid var(--yellow);
+    padding:16px;
+    z-index:9999;
+    display:none;
+    box-shadow:0 -6px 20px rgba(0,0,0,.4);
+  }
+  .result-panel.active{display:block;}
+  .result-top{display:flex; align-items:center; gap:14px; margin-bottom:10px;}
+  .score-limit{
+    flex:none;
+    width:64px;height:64px;border-radius:50%;
+    background:#fff; border:5px solid var(--hit);
+    display:flex; align-items:center; justify-content:center;
+    font-size:20px; font-weight:700; color:var(--ink);
+  }
+  .score-limit.low{border-color:var(--miss);}
+  .result-text{flex:1;}
+  .result-text .r-title{font-size:14px; font-weight:700; color:#fff; margin-bottom:2px;}
+  .result-text .r-sub{font-size:12.5px; color:#b9b4aa; line-height:1.4;}
+  .result-text .r-sub b{color:var(--yellow-soft);}
+
+  /* ---- End screen ---- */
+  #screen-end{align-items:center; text-align:center; padding:28px 20px 40px;}
+  .final-sign{
+    background:var(--yellow); color:var(--ink);
+    border-radius:10px; padding:22px 26px; max-width:340px;
+    margin:0 auto 20px;
+    box-shadow:0 6px 18px rgba(0,0,0,.35);
+  }
+  .final-sign .final-num{font-size:44px; font-weight:700; line-height:1;}
+  .final-sign .final-lbl{font-size:12px; text-transform:uppercase; letter-spacing:.08em; margin-top:4px; font-weight:600;}
+  .newbest{color:var(--green-dark); font-size:12.5px; font-weight:700; margin-top:8px;}
+
+  .breakdown{max-width:360px; width:100%; margin:0 auto 24px; text-align:left;}
+  .breakdown-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:7px 10px; font-size:13px; border-bottom:1px solid #33363c;
+    color:#d8d3c9;
+  }
+  .breakdown-row .brname{flex:1;}
+  .breakdown-row .brmode{font-size:10px; color:#8f8a80; margin-left:6px;}
+  .breakdown-row .brscore{font-weight:700; color:var(--yellow); width:38px; text-align:right;}
+
+  .leaflet-container{background:#dcd7c8;}
+</style>
+</head>
+<body>
+
+<header class="signbar">
+  <div class="title">
+    <span class="place">73098 · Landkreis Göppingen</span>
+    <h1>Straßenschild Rechberghausen</h1>
+  </div>
+  <div class="round-badge mono" id="round-badge" style="display:none;">1/10</div>
+</header>
+
+<main>
+
+  <!-- START SCREEN -->
+  <section class="screen active" id="screen-start">
+    <div class="intro-sign">
+      <div class="street-icon">🛣️</div>
+      <h2>Kennst du deinen Ort?</h2>
+      <p>Ordne Straßennamen auf der Karte zu oder erkenne den Namen anhand eines Standorts. 10 Runden pro Spiel – je genauer, desto mehr Punkte.</p>
+    </div>
+
+    <div class="stat-signs">
+      <div class="stat-circle" style="border-color:var(--hit)">
+        <span class="num mono" id="stat-best">–</span>
+        <span class="lbl">Bestwert</span>
+      </div>
+      <div class="stat-circle">
+        <span class="num mono" id="stat-games">–</span>
+        <span class="lbl">Spiele</span>
+      </div>
+      <div class="stat-circle" style="border-color:var(--yellow)">
+        <span class="num mono" id="stat-streets">–</span>
+        <span class="lbl">Straßen</span>
+      </div>
+    </div>
+
+    <div class="recent-list" id="recent-list" style="display:none;">
+      <h3>Letzte Ergebnisse</h3>
+      <div id="recent-rows"></div>
+    </div>
+
+    <div class="mode-select">
+      <h3>Spielmodus</h3>
+      <div class="mode-buttons">
+        <button class="mode-btn active" data-mode="forward">📍 Finden<br><span style="font-weight:400;font-size:11px;">Name → Karte</span></button>
+        <button class="mode-btn" data-mode="reverse">✍️ Benennen<br><span style="font-weight:400;font-size:11px;">Karte → Name</span></button>
+        <button class="mode-btn" data-mode="mixed">🔀 Gemischt<br><span style="font-weight:400;font-size:11px;">Beides</span></button>
+      </div>
+      <p id="mode-desc" style="font-size:12.5px; color:#b9b4aa; margin:10px 4px 0; line-height:1.45; text-align:left;"></p>
+    </div>
+
+    <div class="mode-select">
+      <h3>Schwierigkeit</h3>
+      <div class="mode-buttons">
+        <button class="mode-btn diff-btn" data-diff="easy">🟢 Leicht<br><span style="font-weight:400;font-size:11px;">zoomt zur Straße</span></button>
+        <button class="mode-btn diff-btn active" data-diff="normal">🔴 Normal<br><span style="font-weight:400;font-size:11px;">kein Zoom-Hinweis</span></button>
+      </div>
+    </div>
+
+    <button class="big-btn" id="btn-start">Spiel starten</button>
+    <p class="osm-credit">Straßendaten: © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>-Mitwirkende</p>
+  </section>
+
+  <!-- LOADING SCREEN -->
+  <section class="screen" id="screen-loading">
+    <div class="spinner"></div>
+    <p>Lade Straßendaten von OpenStreetMap …</p>
+  </section>
+
+  <!-- GAME SCREEN -->
+  <section class="screen" id="screen-game">
+    <div class="game-banner">
+      <div class="instr" id="banner-instr">Wo befindet sich diese Straße?</div>
+      <div class="target-name" id="banner-target">Straßenname</div>
+    </div>
+    <div id="map"></div>
+
+    <!-- reverse mode input -->
+    <div class="reverse-panel" id="reverse-panel" style="display:none;">
+      <input type="text" id="reverse-input" placeholder="Straßenname eingeben …" autocomplete="off">
+      <div class="row">
+        <button class="small-btn" id="btn-submit-reverse">Prüfen</button>
+      </div>
+    </div>
+
+    <!-- result overlay -->
+    <div class="result-panel" id="result-panel">
+      <div class="result-top">
+        <div class="score-limit" id="result-score">0</div>
+        <div class="result-text">
+          <div class="r-title" id="result-title">—</div>
+          <div class="r-sub" id="result-sub">—</div>
+        </div>
+      </div>
+      <button class="big-btn" style="width:100%;padding:13px;" id="btn-next">Weiter</button>
+    </div>
+  </section>
+
+  <!-- END SCREEN -->
+  <section class="screen" id="screen-end">
+    <div class="final-sign">
+      <div class="final-num mono" id="final-score">0</div>
+      <div class="final-lbl">von 1000 Punkten</div>
+      <div class="newbest" id="final-newbest" style="display:none;">🏆 Neuer Bestwert!</div>
+    </div>
+    <div class="breakdown" id="breakdown"></div>
+    <button class="big-btn" id="btn-again">Nochmal spielen</button>
+  </section>
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  // ---------------- CONFIG ----------------
+  const PLACE_NAME = "Rechberghausen";
+  const ROUNDS = 10;
+
+  // ---------------- STATE ----------------
+  let streets = [];      // [{name, segments:[[ [lat,lon], ... ], ...], totalLen, midpoint}]
+  let neighbourhoods = []; // [{name, lat, lon}]
+  let map, guessMarker, targetMarker, targetLine, guessLine;
+  let mode = "forward";
+  let difficulty = "normal";
+  let townBounds = null;
+  let roundIndex = 0;
+  let roundPlan = [];     // [{street, mode}]
+  let totalScore = 0;
+  let breakdown = [];
+  let currentRound = null;
+  let roundLocked = false;
+
+  // ---------------- STORAGE ----------------
+  async function loadStats(){
+    let best = 0, games = 0, recent = [];
+    try{
+      const r = await window.storage.get('rhg-best-score', false);
+      if(r) best = JSON.parse(r.value);
+    }catch(e){}
+    try{
+      const r = await window.storage.get('rhg-games-played', false);
+      if(r) games = JSON.parse(r.value);
+    }catch(e){}
+    try{
+      const r = await window.storage.get('rhg-recent-scores', false);
+      if(r) recent = JSON.parse(r.value);
+    }catch(e){}
+    document.getElementById('stat-best').textContent = best;
+    document.getElementById('stat-games').textContent = games;
+    if(recent.length){
+      document.getElementById('recent-list').style.display = 'block';
+      const rows = document.getElementById('recent-rows');
+      rows.innerHTML = '';
+      recent.slice(0,5).forEach((s,i)=>{
+        const row = document.createElement('div');
+        row.className = 'recent-row';
+        row.innerHTML = `<span>Spiel ${recent.length - i}</span><span class="num mono">${s}/1000</span>`;
+        rows.appendChild(row);
+      });
+    }
+    return {best, games, recent};
+  }
+
+  async function saveGameResult(score){
+    const {best, games, recent} = await loadStats();
+    const newBest = Math.max(best, score);
+    const newGames = games + 1;
+    const newRecent = [score, ...recent].slice(0,5);
+    try{ await window.storage.set('rhg-best-score', JSON.stringify(newBest), false); }catch(e){}
+    try{ await window.storage.set('rhg-games-played', JSON.stringify(newGames), false); }catch(e){}
+    try{ await window.storage.set('rhg-recent-scores', JSON.stringify(newRecent), false); }catch(e){}
+    return newBest > best;
+  }
+
+  // ---------------- GEO HELPERS ----------------
+  function metersPerDeg(lat){
+    const rad = lat * Math.PI/180;
+    return { mLat: 111320, mLon: 111320 * Math.cos(rad) };
+  }
+  function toLocalXY(lat, lon, refLat){
+    const { mLat, mLon } = metersPerDeg(refLat);
+    return [ lon * mLon, lat * mLat ];
+  }
+  function distPointToSegmentM(p, a, b, refLat){
+    const P = toLocalXY(p[0], p[1], refLat);
+    const A = toLocalXY(a[0], a[1], refLat);
+    const B = toLocalXY(b[0], b[1], refLat);
+    const ABx = B[0]-A[0], ABy = B[1]-A[1];
+    const APx = P[0]-A[0], APy = P[1]-A[1];
+    const len2 = ABx*ABx + ABy*ABy;
+    let t = len2 === 0 ? 0 : (APx*ABx + APy*ABy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    const CX = A[0] + ABx*t, CY = A[1] + ABy*t;
+    const dx = P[0]-CX, dy = P[1]-CY;
+    return { dist: Math.sqrt(dx*dx+dy*dy), point: [ CX, CY ], t };
+  }
+  function nearestPointOnStreet(latlng, street){
+    let best = Infinity, bestLL = null;
+    const refLat = latlng[0];
+    street.segments.forEach(seg=>{
+      for(let i=0;i<seg.length-1;i++){
+        const r = distPointToSegmentM(latlng, seg[i], seg[i+1], refLat);
+        if(r.dist < best){
+          best = r.dist;
+          const lat = seg[i][0] + (seg[i+1][0]-seg[i][0]) * r.t;
+          const lon = seg[i][1] + (seg[i+1][1]-seg[i][1]) * r.t;
+          bestLL = [lat, lon];
+        }
+      }
+      if(seg.length === 1){
+        const d = haversine(latlng, seg[0]);
+        if(d < best){ best = d; bestLL = seg[0]; }
+      }
+    });
+    return { dist: best, latlng: bestLL };
+  }
+  function haversine(a, b){
+    const R = 6371000;
+    const dLat = (b[0]-a[0]) * Math.PI/180;
+    const dLon = (b[1]-a[1]) * Math.PI/180;
+    const la1 = a[0]*Math.PI/180, la2 = b[0]*Math.PI/180;
+    const h = Math.sin(dLat/2)**2 + Math.cos(la1)*Math.cos(la2)*Math.sin(dLon/2)**2;
+    return R * 2*Math.atan2(Math.sqrt(h), Math.sqrt(1-h));
+  }
+  function segLength(seg){
+    let l = 0;
+    for(let i=0;i<seg.length-1;i++) l += haversine(seg[i], seg[i+1]);
+    return l;
+  }
+  function randomPointOnStreet(street){
+    const totalLen = street.segments.reduce((s,seg)=> s + Math.max(segLength(seg), 0.001), 0);
+    let target = Math.random() * totalLen;
+    for(const seg of street.segments){
+      if(seg.length === 1) { if(target <= 0.001) return seg[0]; target -= 0.001; continue; }
+      const len = segLength(seg);
+      if(target <= len){
+        for(let i=0;i<seg.length-1;i++){
+          const d = haversine(seg[i], seg[i+1]);
+          if(target <= d){
+            const t = d === 0 ? 0 : target/d;
+            return [ seg[i][0] + (seg[i+1][0]-seg[i][0])*t, seg[i][1] + (seg[i+1][1]-seg[i][1])*t ];
+          }
+          target -= d;
+        }
+        return seg[seg.length-1];
+      }
+      target -= len;
+    }
+    return street.segments[0][0];
+  }
+  function streetMidpoint(street){
+    const seg = street.segments[Math.floor(street.segments.length/2)];
+    return seg[Math.floor(seg.length/2)];
+  }
+  function nearestNeighbourhood(latlng){
+    if(neighbourhoods.length < 2) return null; // only one candidate = meaningless, always "nearest"
+    let best = Infinity, name = null;
+    neighbourhoods.forEach(n=>{
+      const d = haversine(latlng, [n.lat, n.lon]);
+      if(d < best){ best = d; name = n.name; }
+    });
+    return name;
+  }
+
+  // ---------------- LEVENSHTEIN ----------------
+  function normalizeName(s){
+    return s.toLowerCase()
+      .replace(/straße|strasse/g,'str')
+      .replace(/[^a-z0-9äöüß ]/g,'')
+      .replace(/\s+/g,' ')
+      .trim();
+  }
+  function levenshtein(a, b){
+    const m = a.length, n = b.length;
+    const dp = Array.from({length:m+1}, (_,i)=>[i, ...Array(n).fill(0)]);
+    for(let j=0;j<=n;j++) dp[0][j] = j;
+    for(let i=1;i<=m;i++){
+      for(let j=1;j<=n;j++){
+        const cost = a[i-1] === b[j-1] ? 0 : 1;
+        dp[i][j] = Math.min(dp[i-1][j]+1, dp[i][j-1]+1, dp[i-1][j-1]+cost);
+      }
+    }
+    return dp[m][n];
+  }
+  function nameSimilarityScore(guess, actual){
+    const g = normalizeName(guess), a = normalizeName(actual);
+    if(!g) return 0;
+    if(g === a) return 100;
+    const dist = levenshtein(g, a);
+    const maxLen = Math.max(g.length, a.length);
+    const sim = 1 - dist/maxLen;
+    return Math.round(Math.max(0, sim) * 100);
+  }
+
+  // ---------------- DATA LOADING (live von OpenStreetMap) ----------------
+  const EXCLUDED_HIGHWAY = new Set(["footway","path","track","cycleway","bridleway","steps","pedestrian","construction","proposed","platform","corridor"]);
+  const OVERPASS_ENDPOINTS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
+    "https://overpass.openstreetmap.ie/api/interpreter"
+  ];
+
+  function buildOverpassQuery(placeName){
+    return `
+      [out:json][timeout:25];
+      area["name"="${placeName}"]["boundary"="administrative"]->.a;
+      (
+        way["highway"]["name"](area.a);
+        way["place"="square"]["name"](area.a);
+        node["place"~"^(suburb|quarter|neighbourhood|hamlet)$"](area.a);
+      );
+      out geom;
+    `;
+  }
+
+  async function postOverpass(endpoint, query, timeoutMs){
+    const controller = new AbortController();
+    const timer = setTimeout(()=> controller.abort(), timeoutMs);
+    try{
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "data=" + encodeURIComponent(query),
+        signal: controller.signal
+      });
+      if(!res.ok){
+        const bodyText = await res.text().catch(()=> "");
+        throw new Error("HTTP " + res.status + (bodyText ? " – " + bodyText.slice(0,160) : ""));
+      }
+      const json = await res.json();
+      if(!json.elements) throw new Error("Antwort ohne 'elements'-Feld");
+      if(json.elements.length === 0) throw new Error("0 Elemente von " + endpoint + " (Ortsname evtl. nicht eindeutig – Bundesland/Land ergänzen)");
+      return json;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function raceEndpoints(query, timeoutMs){
+    return Promise.any(OVERPASS_ENDPOINTS.map(ep => postOverpass(ep, query, timeoutMs)));
+  }
+
+  async function fetchOverpass(placeName){
+    const query = buildOverpassQuery(placeName);
+    try{
+      return await raceEndpoints(query, 15000);
+    }catch(e){
+      const detail = (e.errors || [e]).map((err,i)=> OVERPASS_ENDPOINTS[i] + ": " + (err.name === 'AbortError' ? 'Zeitüberschreitung/Timeout' : err.message)).join(" | ");
+      throw new Error(detail);
+    }
+  }
+
+  function buildStreets(json){
+    const map = new Map();
+    neighbourhoods = [];
+    json.elements.forEach(el=>{
+      if(el.type === "way" && el.tags && el.tags.name){
+        const hw = el.tags.highway;
+        const isSquare = el.tags.place === "square";
+        if(!isSquare && (!hw || EXCLUDED_HIGHWAY.has(hw))) return;
+        if(!el.geometry || el.geometry.length < 1) return;
+        const name = el.tags.name.trim();
+        const seg = el.geometry.map(g => [g.lat, g.lon]);
+        if(!map.has(name)) map.set(name, []);
+        map.get(name).push(seg);
+      } else if(el.type === "node" && el.tags && el.tags.place && /suburb|quarter|neighbourhood|hamlet/.test(el.tags.place) && el.tags.name){
+        neighbourhoods.push({ name: el.tags.name, lat: el.lat, lon: el.lon });
+      }
+    });
+    streets = Array.from(map.entries()).map(([name, segments]) => ({ name, segments }));
+    const allPts = [];
+    streets.forEach(s => s.segments.forEach(seg => seg.forEach(p => allPts.push(p))));
+    if(allPts.length) townBounds = L.latLngBounds(allPts).pad(0.08);
+  }
+
+  // ---------------- UI: SCREENS ----------------
+  function showScreen(id){
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  // ---------------- MODE SELECT ----------------
+  const MODE_DESCRIPTIONS = {
+    forward: "Der Straßenname wird angezeigt – klicke auf der Karte an die Stelle, an der sich diese Straße befindet. Je genauer, desto mehr Punkte.",
+    reverse: "Eine Stelle wird auf der Karte markiert – tippe den Namen der dort verlaufenden Straße ein. Je näher deine Eingabe am echten Namen ist, desto mehr Punkte.",
+    mixed: "Jede Runde wird zufällig entweder „Finden“ oder „Benennen“ gespielt – gute Mischung aus beidem."
+  };
+
+  document.querySelectorAll('.mode-btn[data-mode]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.mode-btn[data-mode]').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      mode = btn.dataset.mode;
+      document.getElementById('mode-desc').textContent = MODE_DESCRIPTIONS[mode];
+    });
+  });
+  document.getElementById('mode-desc').textContent = MODE_DESCRIPTIONS[mode];
+  document.querySelectorAll('.diff-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.diff-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      difficulty = btn.dataset.diff;
+    });
+  });
+
+  // ---------------- START ----------------
+  document.getElementById('btn-start').addEventListener('click', async ()=>{
+    showScreen('screen-loading');
+    try{
+      if(streets.length === 0){
+        const json = await fetchOverpass("Rechberghausen");
+        buildStreets(json);
+        document.getElementById('stat-streets').textContent = streets.length;
+      }
+      if(streets.length < 4){
+        throw new Error("Zu wenige Straßen geladen (" + streets.length + ").");
+      }
+      startGame();
+    }catch(err){
+      document.getElementById('screen-loading').innerHTML =
+        '<div class="error-box">⚠️ Straßendaten konnten nicht geladen werden.<br><br>' +
+        '<span class="mono" style="font-size:11px; word-break:break-word; display:block;">' + (err.message || err) + '</span>' +
+        '<br><br>Hinweis: Live-Laden funktioniert nur, wenn diese Seite über eine echte Webadresse (http/https) aufgerufen wird, nicht per Doppelklick als lokale Datei.</div>' +
+        '<button class="big-btn" style="margin-top:16px;" onclick="location.reload()">Neu laden</button>';
+    }
+  });
+
+  function pickRoundStreets(){
+    const pool = [...streets];
+    for(let i = pool.length-1; i>0; i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [pool[i],pool[j]] = [pool[j],pool[i]];
+    }
+    const chosen = [];
+    for(let i=0;i<ROUNDS;i++){
+      chosen.push(pool[i % pool.length]);
+    }
+    return chosen.map(street=>{
+      let m = mode;
+      if(mode === "mixed") m = Math.random() < 0.5 ? "forward" : "reverse";
+      return { street, mode: m };
+    });
+  }
+
+  function startGame(){
+    roundPlan = pickRoundStreets();
+    roundIndex = 0;
+    totalScore = 0;
+    breakdown = [];
+    document.getElementById('round-badge').style.display = 'block';
+    showScreen('screen-game');
+    // Wait a frame so the browser has actually laid out the now-visible
+    // #map container before Leaflet reads its size (otherwise fitBounds/
+    // setView can compute a wildly wrong, zoomed-out view).
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        initMapIfNeeded();
+        if(map) map.invalidateSize();
+        nextRound();
+      });
+    });
+  }
+
+  function initMapIfNeeded(){
+    if(map) return;
+    map = L.map('map', { zoomControl:true }).setView([48.716, 9.685], 15);
+    const streetLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19,
+      maxNativeZoom: 16,
+      attribution: 'Tiles &copy; Esri &mdash; Kartendaten &copy; OpenStreetMap-Mitwirkende'
+    }).addTo(map);
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19,
+      attribution: 'Tiles &copy; Esri'
+    });
+    L.control.layers({ "Karte": streetLayer, "Satellit": satelliteLayer }, null, { position:'topright', collapsed:true }).addTo(map);
+    // fit to all streets once known
+    setTimeout(()=>{
+      if(streets.length){
+        const pts = [];
+        streets.forEach(s => s.segments.forEach(seg => seg.forEach(p => pts.push(p))));
+        if(pts.length) map.fitBounds(L.latLngBounds(pts), { padding:[20,20] });
+      }
+    }, 50);
+  }
+
+  // ---------------- ROUND FLOW ----------------
+  function clearMapLayers(){
+    [guessMarker, targetMarker, targetLine, guessLine].forEach(l=>{ if(l) map.removeLayer(l); });
+    guessMarker = targetMarker = targetLine = guessLine = null;
+  }
+
+  function nextRound(){
+    document.getElementById('result-panel').classList.remove('active');
+    if(roundIndex >= ROUNDS){ endGame(); return; }
+    roundLocked = false;
+    map.invalidateSize();
+    clearMapLayers();
+    document.getElementById('round-badge').textContent = (roundIndex+1) + "/" + ROUNDS;
+    currentRound = roundPlan[roundIndex];
+    const { street, mode: rMode } = currentRound;
+
+    if(rMode === "forward"){
+      document.getElementById('banner-instr').textContent = "Klicke auf die Karte: Wo verläuft diese Straße?";
+      document.getElementById('banner-target').textContent = street.name;
+      document.getElementById('reverse-panel').style.display = 'none';
+      map.dragging.enable();
+      if(difficulty === "easy"){
+        const pts = [];
+        street.segments.forEach(seg => seg.forEach(p => pts.push(p)));
+        map.fitBounds(L.latLngBounds(pts), { padding:[80,80], maxZoom:17 });
+      } else if(townBounds){
+        map.fitBounds(townBounds);
+      }
+      map.once('click', onMapGuess);
+    } else {
+      document.getElementById('banner-instr').textContent = "Wie heißt die Straße an dieser Markierung?";
+      document.getElementById('banner-target').textContent = "?";
+      document.getElementById('reverse-panel').style.display = 'block';
+      document.getElementById('reverse-input').value = "";
+      document.getElementById('reverse-input').disabled = false;
+      document.getElementById('btn-submit-reverse').disabled = false;
+      const pt = randomPointOnStreet(street);
+      targetMarker = L.circleMarker(pt, { radius:10, color:'#F5C400', weight:3, fillColor:'#1E5631', fillOpacity:1 }).addTo(map);
+      map.setView(pt, 17);
+      setTimeout(()=> document.getElementById('reverse-input').focus(), 200);
+    }
+  }
+
+  function onMapGuess(e){
+    if(roundLocked) return;
+    roundLocked = true;
+    const street = currentRound.street;
+    const guessLL = [e.latlng.lat, e.latlng.lng];
+    const { dist, latlng: nearest } = nearestPointOnStreet(guessLL, street);
+    const score = Math.max(0, Math.round(100 - dist/3));
+    guessMarker = L.circleMarker(guessLL, { radius:9, color:'#fff', weight:2, fillColor:'#C4402D', fillOpacity:1 }).addTo(map);
+    const latlngs = [];
+    street.segments.forEach(seg => { if(seg.length>1) latlngs.push(seg); });
+    targetLine = L.polyline(latlngs, { color:'#2E8B57', weight:6, opacity:.85 }).addTo(map);
+    guessLine = L.polyline([guessLL, nearest], { color:'#F5C400', weight:2, dashArray:'6,6' }).addTo(map);
+    const b = L.latLngBounds([guessLL, nearest]);
+    street.segments.forEach(seg=>seg.forEach(p=>b.extend(p)));
+    map.fitBounds(b, { padding:[70,90], maxZoom:17 });
+
+    const hood = nearestNeighbourhood(nearest);
+    showResult(score, "„" + street.name + "“",
+      `Abstand zur Straße: <b>${Math.round(dist)} m</b>` + (hood ? ` · Bereich: <b>${hood}</b>` : ""));
+    recordRound(street.name, "Finden", score);
+  }
+
+  document.getElementById('btn-submit-reverse').addEventListener('click', submitReverse);
+  document.getElementById('reverse-input').addEventListener('keydown', e=>{ if(e.key === 'Enter') submitReverse(); });
+
+  function submitReverse(){
+    if(roundLocked) return;
+    roundLocked = true;
+    document.getElementById('reverse-input').disabled = true;
+    document.getElementById('btn-submit-reverse').disabled = true;
+    const street = currentRound.street;
+    const guess = document.getElementById('reverse-input').value || "(leer)";
+    const score = nameSimilarityScore(guess, street.name);
+    document.getElementById('banner-target').textContent = street.name;
+    const hood = nearestNeighbourhood(streetMidpoint(street));
+    showResult(score, "Richtig: „" + street.name + "“",
+      `Deine Eingabe: <b>${guess}</b>` + (hood ? ` · Bereich: <b>${hood}</b>` : ""));
+    recordRound(street.name, "Benennen", score);
+  }
+
+  function showResult(score, title, sub){
+    totalScore += score;
+    const el = document.getElementById('result-score');
+    el.textContent = score;
+    el.classList.toggle('low', score < 50);
+    document.getElementById('result-title').textContent = title;
+    document.getElementById('result-sub').innerHTML = sub;
+    document.getElementById('result-panel').classList.add('active');
+  }
+
+  function recordRound(name, modeLabel, score){
+    breakdown.push({ name, mode: modeLabel, score });
+  }
+
+  document.getElementById('btn-next').addEventListener('click', ()=>{
+    roundIndex++;
+    nextRound();
+  });
+
+  async function endGame(){
+    document.getElementById('round-badge').style.display = 'none';
+    showScreen('screen-end');
+    document.getElementById('final-score').textContent = totalScore;
+    const isNewBest = await saveGameResult(totalScore);
+    document.getElementById('final-newbest').style.display = isNewBest ? 'block' : 'none';
+    const bEl = document.getElementById('breakdown');
+    bEl.innerHTML = '';
+    breakdown.forEach((r,i)=>{
+      const row = document.createElement('div');
+      row.className = 'breakdown-row';
+      row.innerHTML = `<span class="brname">${i+1}. ${r.name}<span class="brmode">${r.mode}</span></span><span class="brscore">${r.score}</span>`;
+      bEl.appendChild(row);
+    });
+  }
+
+  document.getElementById('btn-again').addEventListener('click', ()=>{
+    showScreen('screen-start');
+    loadStats();
+  });
+
+  // ---------------- INIT ----------------
+  loadStats();
+})();
+</script>
+</body>
+</html>
