@@ -520,13 +520,7 @@
     return seg[Math.floor(seg.length/2)];
   }
   function nearestNeighbourhood(latlng){
-    if(neighbourhoods.length < 2) return null; // only one candidate = meaningless, always "nearest"
-    let best = Infinity, name = null;
-    neighbourhoods.forEach(n=>{
-      const d = haversine(latlng, [n.lat, n.lon]);
-      if(d < best){ best = d; name = n.name; }
-    });
-    return name;
+    return null; // OSM-Daten für Rechberghausen unvollständig -> Bereichs-Anzeige deaktiviert, siehe Kommentar mit dem Nutzer
   }
 
   // ---------------- LEVENSHTEIN ----------------
